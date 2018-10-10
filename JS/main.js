@@ -4,23 +4,21 @@ document.querySelector("#AES").addEventListener("submit", function (e) {
     let pass = document.querySelector("#pass-cif-aes").value;
     let arr_matriz_text = GenerarMatriz4x4(text);
     let arr_matriz_pass = GenerarMatriz4x4(pass);
-    console.log(arr_matriz_text);
-    console.log(matrixToSubBytes(arr_matriz_text.arr_matriz[0]));
-    //if(!arr_matriz_text.arr_matriz)
-        return {warning: true, msg: "El texto no se puede dividir en bloques de 16 caracteres"};
-    if(!arr_matriz_pass.arr_matriz)
-        return {warning: true, msg: "El texto no se puede dividir en bloques de 16 caracteres"};
+    encrypt(arr_matriz_text.arr_matriz,arr_matriz_pass.arr_matriz);
 });
 function encrypt(txt_matrix, pass_matrix){
-    let addRoundKey= addRoundKey(txt_matrix, pass_matrix);
-    let state = 
+    let key= addRoundKey(txt_matrix, pass_matrix);
+    let state = txt_matrix;
     for(let i=0; i<9; i++){
-        let subBytes = matrixToSubBytes(addRoundKey);
-        let shiftRows = shiftRows(subBytes);
-        let mixColumns = mixColumns(shiftRows);
-        addRoundKey= addRoundKey(addRoundKey, )
+        state = matrixToSubBytes(state);
+        state = shiftRows(state);
+        state = mixColumns(state);
+        key= addRoundKey(key, state);
     }
-
+    state = matrixToSubBytes(state);
+    state = shiftRows(state);
+    key = addRoundKey(key,state);
+    console.log(state);
 }
 function GenerarMatriz4x4(text) {
     let matriz = [];    
