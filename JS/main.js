@@ -1,53 +1,34 @@
-document.querySelector("#AES").addEventListener("submit", function (e) {
-    e.preventDefault();
-    let text = document.querySelector("#text-cif-aes").value;
-    let pass = document.querySelector("#pass-cif-aes").value;
-    let arr_matriz_text = GenerarMatriz4x4(text);
-    let arr_matriz_pass = GenerarMatriz4x4(pass);
-    encrypt(arr_matriz_text.arr_matriz,arr_matriz_pass.arr_matriz);
-});
-function encrypt(txt_matrix, pass_matrix){
-    let key= addRoundKey(txt_matrix, pass_matrix);
-    let state = txt_matrix;
-    for(let i=0; i<9; i++){
-        state = matrixToSubBytes(state);
-        state = shiftRows(state);
-        state = mixColumns(state);
-        key= addRoundKey(key, state);
-    }
-    state = matrixToSubBytes(state);
-    state = shiftRows(state);
-    key = addRoundKey(key,state);
-    console.log(state);
-}
 function GenerarMatriz4x4(text) {
-    let matriz = [];    
-    let arr_matriz = [];
+
+    let cuatro = [];    
+    let arr_cuatro = [];
     let sobras = null;
     let text_length = text.length;
     if (text.length % 16 != 0)
         sobras = text.slice(text_length - text_length%16, text_length);
     text = text.split("");
     while (text.length >= 16) {
-        for (let m = 0; m <= 4; m++) {
-            matriz.push(text.splice(0, 4));
-            if (matriz.length >= 4) 
-                arr_matriz.push(matriz.splice(0, matriz.length));
+        for (let m = 0; m < 4; m++) {
+            cuatro[m]=(text.slice(0, 4));
+            text.splice(0,4);
+            if (cuatro.length >= 4) 
+                arr_cuatro.push(cuatro.splice(0, cuatro.length));
         }
     }
-    return {arr_matriz: encodeToHex(arr_matriz), sobras: sobras };
+    //console.log(arr_cuatro);
+    return {arr_cuatro: encodeToHex(arr_cuatro), sobras: sobras };
 }
-function encodeToHex(arr_matriz){
-    if(!arr_matriz)
+function encodeToHex(matriz_encode){
+    if(!matriz_encode)
         return false;
-    for(let k=0; k<arr_matriz.length; k++){
+    for(let k=0; k<matriz_encode.length; k++){
         for(let i=0; i<4; i++){
             for(let j=0; j<4; j++){
-                arr_matriz[k][i][j]= "0x" + arr_matriz[k][i][j].charCodeAt(0).toString(16);
+                matriz_encode[k][i][j]= "0x" + matriz_encode[k][i][j].charCodeAt(0).toString(16);
             }
         }
     }
-    return arr_matriz;
+    return matriz_encode;
 }
 const sBox =[0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
              0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
@@ -66,57 +47,94 @@ const sBox =[0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0x
              0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
              0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16];
 const sBoxColumn= ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"];
-function matrixToSubBytes(matrix){
+function matrixToSubBytes(subs){
+    console.log("SubBytes: " + subs);
     for(let i=0; i<4; i++){
         for(let j=0; j<4; j++){
-            let x = sBoxColumn.indexOf(matrix[i][j].charAt(2));
-            let y = sBoxColumn.indexOf(matrix[i][j].charAt(3));
-            matrix[i][j] = sBox[x+(y*16)];
+            let x = sBoxColumn.indexOf((subs[0][i][j]).charAt(2));
+            let y = sBoxColumn.indexOf((subs[0][i][j]).charAt(3));
+            subs[0][i][j] = sBox[x+(y*16)];
         }
     }
-    return matrix;
+    return subs;
 }
 function shiftRows (matrix){
     let t = new Array(4);
+    for(let s=0; s<4;s++)
+        matrix[0][0][s]= decToHex(matrix[0][0][s]);
     for (let r=1; r<4; r++) {
-        for (let c=0; c<4; c++) 
-            t[c] = matrix[r][(c+r)%4];
+        for (let c=0; c<4; c++){
+            t[c] = matrix[0][r][(c+r)%4];
+            console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAA: "+t[c]);
+        }
         for (let m=0; m<4; m++) 
-            matrix[r][m] = t[m];
+            matrix[0][r][m] = decToHex(t[m]);
     }
+    console.log("shiftRows"+ matrix);
     return matrix;
 }
 function mixColumns(matrix) {
+    console.log(matrix[0]);
     for (let c=0; c<4; c++) {
         let a = new Array(4);
         let b = new Array(4);
         let h;
         for (let i=0; i<4; i++) {
-            a[i] = matrix[c][i];
-            b[i] ^= matrix[c][i];
+            a[i] = matrix[0][c][i];
+            b[i] ^= matrix[0][c][i];
         }
         // a[n] ^ b[n] is a•{03} in GF(2^8)
-        matrix[0][c] = b[0] ^ a[1] ^ b[1] ^ a[2] ^ a[3]; // {02}•a0 + {03}•a1 + a2 + a3
-        matrix[1][c] = a[0] ^ b[1] ^ a[2] ^ b[2] ^ a[3]; // a0 • {02}•a1 + {03}•a2 + a3
-        matrix[2][c] = a[0] ^ a[1] ^ b[2] ^ a[3] ^ b[3]; // a0 + a1 + {02}•a2 + {03}•a3
-        matrix[3][c] = a[0] ^ b[0] ^ a[1] ^ a[2] ^ b[3]; // {03}•a0 + a1 + a2 + {02}•a3
+        matrix[0][0][c] = decToHex(b[0] ^ a[1] ^ b[1] ^ a[2] ^ a[3]); // {02}•a0 + {03}•a1 + a2 + a3
+        matrix[0][1][c] = decToHex(a[0] ^ b[1] ^ a[2] ^ b[2] ^ a[3]); // a0 • {02}•a1 + {03}•a2 + a3
+        matrix[0][2][c] = decToHex(a[0] ^ a[1] ^ b[2] ^ a[3] ^ b[3]); // a0 + a1 + {02}•a2 + {03}•a3
+        matrix[0][3][c] = decToHex(a[0] ^ b[0] ^ a[1] ^ a[2] ^ b[3]); // {03}•a0 + a1 + a2 + {02}•a3
     }
+    console.log("mixixi: " +  matrix[0]);
     return matrix;
 };
 function addRoundKey(matrix_txt, matrix_pass ){
 	let matrix_key=[];
 	let round_key=[];
+    console.log("Add round_key: " + matrix_pass);
+    //for (var i = 0; i <matrix_txt.length/16 ; i++) {
+    //    Things[i]
+    //}
 	for (let i = 0; i < 4; i++) {
 		for (let m = 0; m < 4; m++) {
-            console.log("text: " + matrix_txt[i][m]);
-            console.log("pass: " + matrix_pass[i][m]);
-            console.log("XOR: " + decToHex((matrix_txt[i][m] ^ matrix_pass[i][m])));
-			round_key.push(decToHex(matrix_txt[i][m] ^ matrix_pass[i][m]));
+            //console.log("text: " + matrix_txt[0][i][m]);
+            //console.log("pass: " + matrix_pass[0][i][m]);
+            //console.log("XOR: " + decToHex((matrix_txt[0][i][m] ^ matrix_pass[0][i][m])));
+			round_key.push(decToHex(matrix_txt[0][i][m] ^ matrix_pass[0][i][m]));
 	    }
         matrix_key.push(round_key.splice(0, round_key.length));	
 	}
+    console.log(matrix_key);
 	return matrix_key;
 }
 function decToHex(number){
-    return  ("0x"+(Number(number).toString(16))).slice(-2);
+    return  ("0x"+(Number(number).toString(16)));
 }
+function encrypt(txt_matrix, pass_matrix){
+    let state = txt_matrix.arr_cuatro;
+    let key= addRoundKey(state, pass_matrix);
+    
+    for(let i=0; i<9; i++){
+        console.log("Ronda: " + i);
+        state = matrixToSubBytes(state);
+        state = shiftRows(state);
+        state = mixColumns(state);
+        key= addRoundKey(key, state);
+    }
+    state = matrixToSubBytes(state);
+    state = shiftRows(state);
+    key = addRoundKey(key,state);
+    console.log(state);
+}
+document.querySelector("#AES").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const text = document.querySelector("#text-cif-aes").value;
+    const pass = document.querySelector("#pass-cif-aes").value.toString();
+    const arr_matriz_text = GenerarMatriz4x4(text);
+    const arr_matriz_pass = GenerarMatriz4x4(pass).arr_cuatro;
+    encrypt(arr_matriz_text, arr_matriz_pass);
+});
